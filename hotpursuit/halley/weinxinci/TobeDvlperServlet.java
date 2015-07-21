@@ -1,5 +1,7 @@
 package hotpursuit.halley.weinxinci;
 
+import hotpursuit.halley.service.BuzznessService;
+import hotpursuit.halley.service.impl.BuzznessServiceImpl;
 import hotpursuit.halley.utils.ServletUtil;
 import hotpursuit.halley.utils.SignUtil;
 
@@ -58,6 +60,20 @@ public class TobeDvlperServlet extends HttpServlet{
 	protected void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws ServletException, IOException {
 		//消息的接收、处理、响应  
+		
+		// 将请求、响应的编码均设置为UTF-8（防止中文乱码）   
+        req.setCharacterEncoding("UTF-8");  
+        resp.setCharacterEncoding("UTF-8");  
+        
+        BuzznessService bs = new BuzznessServiceImpl();
+  
+        // 调用核心业务类接收消息、处理消息   
+        String respMessage = bs.processRequest(req);  
+          
+        // 响应消息   
+        PrintWriter out = resp.getWriter();  
+        out.print(respMessage);  
+        out.close(); 
 	}
 	
 	
