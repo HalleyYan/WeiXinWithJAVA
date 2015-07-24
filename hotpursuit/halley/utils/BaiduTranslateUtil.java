@@ -165,6 +165,6 @@ public class BaiduTranslateUtil {
 	public static void main(String[] args) {
 		// 翻译结果：The network really powerful
 		//System.out.println(translate("网络真强大"));
-		System.out.println(ipToLocation("14.16.1.102"));
+		System.out.println(ipToLocation("210.21.81.168"));
 	}
 }

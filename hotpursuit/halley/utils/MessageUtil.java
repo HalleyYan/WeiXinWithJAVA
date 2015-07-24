@@ -185,4 +185,9 @@ public class MessageUtil {
 			};
 		}
 	});
+	
+	public static String emoji(int hexEmoji) {  
+	    return String.valueOf(Character.toChars(hexEmoji));  
+	}  
+
 }

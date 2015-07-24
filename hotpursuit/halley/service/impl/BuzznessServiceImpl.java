@@ -1,7 +1,12 @@
 package hotpursuit.halley.service.impl;
 
+import hotpursuit.halley.message.response.Music;
+import hotpursuit.halley.message.response.MusicMessage;
 import hotpursuit.halley.message.response.TextMessage;
 import hotpursuit.halley.service.BuzznessService;
+import hotpursuit.halley.utils.BaiduMusicUtil;
+import hotpursuit.halley.utils.BaiduTranslateUtil;
+import hotpursuit.halley.utils.FacePlusPlusUtil;
 import hotpursuit.halley.utils.MessageUtil;
 
 import java.util.Date;
@@ -42,11 +47,61 @@ public class BuzznessServiceImpl implements BuzznessService {
   
             // 文本消息   
             if (msgType.equals(MessageUtil.REQ_MESSAGE_TYPE_TEXT)) {  
-                respContent = "您发送的是文本消息！";  
+                respContent = "您发送的是文本消息！";
+                String content = requestMap.get("Content").trim();  
+                if (content.startsWith("翻译")) {  
+                    String keyWord = content.replaceAll("^翻译", "").trim();  
+                    if ("".equals(keyWord)) {  
+                        textMessage.setContent(getTranslateUsage());  
+                    } else {  
+                        textMessage.setContent(BaiduTranslateUtil.translate(keyWord));  
+                    }  
+                }
+                
+                if (content.startsWith("歌曲")) {  
+                    // 将歌曲2个字及歌曲后面的+、空格、-等特殊符号去掉   
+                    String keyWord = content.replaceAll("^歌曲[\\+ ~!@#%^-_=]?", "");  
+                    // 如果歌曲名称为空   
+                    if ("".equals(keyWord)) {  
+                        respContent = getUsage();  
+                    } else {  
+                        String[] kwArr = keyWord.split("@");  
+                        // 歌曲名称   
+                        String musicTitle = kwArr[0];  
+                        // 演唱者默认为空   
+                        String musicAuthor = "";  
+                        if (2 == kwArr.length)  
+                            musicAuthor = kwArr[1];  
+  
+                        // 搜索音乐   
+                        Music music = BaiduMusicUtil.searchMusic(musicTitle, musicAuthor);  
+                        // 未搜索到音乐   
+                        if (null == music) {  
+                            respContent = "对不起，没有找到你想听的歌曲<" + musicTitle + ">。";  
+                        } else {  
+                            // 音乐消息   
+                            MusicMessage musicMessage = new MusicMessage();  
+                            musicMessage.setToUserName(fromUserName);  
+                            musicMessage.setFromUserName(toUserName);  
+                            musicMessage.setCreateTime(new Date().getTime());  
+                            musicMessage.setMsgType(MessageUtil.RESP_MESSAGE_TYPE_MUSIC);  
+                            musicMessage.setMusic(music);  
+                            respMessage = MessageUtil.musicMessageToXml(musicMessage);  
+                        }  
+                    }  
+                }  
+
+
             }  
             // 图片消息   
             else if (msgType.equals(MessageUtil.REQ_MESSAGE_TYPE_IMAGE)) {  
                 respContent = "您发送的是图片消息！";  
+             // 取得图片地址   
+                String picUrl = requestMap.get("PicUrl");  
+                // 人脸检测   
+                String detectResult = FacePlusPlusUtil.detect(picUrl);  
+                textMessage.setContent(detectResult);  
+
             }  
             // 地理位置消息   
             else if (msgType.equals(MessageUtil.REQ_MESSAGE_TYPE_LOCATION)) {  
@@ -105,15 +160,60 @@ public class BuzznessServiceImpl implements BuzznessService {
                 
                 }  
             }  
+            
+            // 未搜索到音乐时返回使用指南   
+            if (null == respMessage) {  
+                if (null == respContent)  
+                    respContent = getUsage();  
+                textMessage.setContent(respContent);  
+                respMessage = MessageUtil.textMessageToXml(textMessage);  
+            } 
   
-            textMessage.setContent(respContent);  
-            respMessage = MessageUtil.textMessageToXml(textMessage);  
         } catch (Exception e) {  
             e.printStackTrace();  
         }  
   
         return respMessage;  
     }  
+	
+	public static String getUsage() {  
+        StringBuffer buffer = new StringBuffer();  
+        buffer.append("歌曲点播操作指南").append("\n\n");  
+        buffer.append("回复：歌曲+歌名").append("\n");  
+        buffer.append("例如：歌曲存在").append("\n");  
+        buffer.append("或者：歌曲存在@汪峰").append("\n\n");  
+        buffer.append("回复“?”显示主菜单");  
+        return buffer.toString();  
+    }  
+	
+	public static String getPicUsage() {  
+        StringBuffer buffer = new StringBuffer();  
+        buffer.append("人脸检测使用指南").append("\n\n");  
+        buffer.append("发送一张清晰的照片，就能帮你分析出种族、年龄、性别等信息").append("\n");  
+        buffer.append("快来试试你是不是长得太着急");  
+        return buffer.toString();  
+    } 
+
+	
+	/**
+	 * Q译通使用指南
+	 * 
+	 * @return
+	 */
+	public static String getTranslateUsage() {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append(MessageUtil.emoji(0xe148)).append("Q译通使用指南").append("\n\n");
+		buffer.append("Q译通为用户提供专业的多语言翻译服务，目前支持以下翻译方向：").append("\n");
+		buffer.append("    中 -> 英").append("\n");
+		buffer.append("    英 -> 中").append("\n");
+		buffer.append("    日 -> 中").append("\n\n");
+		buffer.append("使用示例：").append("\n");
+		buffer.append("    翻译我是中国人").append("\n");
+		buffer.append("    翻译dream").append("\n");
+		buffer.append("    翻译さようなら").append("\n\n");
+		buffer.append("回复“?”显示主菜单");
+		return buffer.toString();
+	}
 
 	
 }
